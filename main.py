@@ -1,10 +1,13 @@
 from flask import Flask, request
 import requests
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # 🟢 โหลดค่าจาก .env
 
 app = Flask(__name__)
 
-# ✅ ใช้ชื่อ ENV แทนค่าตรง ๆ
+# 📦 ดึงค่า ENV มาใช้
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 
