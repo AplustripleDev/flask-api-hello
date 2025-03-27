@@ -1,6 +1,6 @@
 import os
 import requests
-from handlers.ai_handler import ask_gpt  # (เดี๋ยวจะสร้างตามหลัง)
+from handlers.ai_handler import ask_gpt
 from dotenv import load_dotenv
 
 load_dotenv()
