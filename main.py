@@ -4,15 +4,20 @@ import os
 
 app = Flask(__name__)
 
-LINE_CHANNEL_SECRET = os.getenv("4456357c2e14d36894e743d5aa12d7d9")
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("iGCAgqUelLX+zqtt1arTWZVSY12uEsBXTaY7yHbOHVNJ36lhtsrzGqEIoiquHYt8BSL/GKSHZubytWRw1+uxIDxnv36/VIDNYGW43u/b3+wyfVzyVK7bkpXl58MTJEmwT/q6ahwrJGxCnCw8Vu232QdB04t89/1O/w1cDnyilFU=")
+# ✅ ใช้ชื่อ ENV แทนค่าตรง ๆ
+LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 
 @app.route('/')
 def home():
     return "✨ Hello from Railway LINE API ✨"
 
-@app.route("/webhook", methods=["POST"])
+# ✅ รองรับ GET และ POST
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
+    if request.method == "GET":
+        return "Webhook is active.", 200
+
     body = request.get_json()
     print("📩 ได้รับข้อความ:", body)
 
