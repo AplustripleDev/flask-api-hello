@@ -11,7 +11,7 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv("iGCAgqUelLX+zqtt1arTWZVSY12uEsBXTaY7yHbOH
 def home():
     return "✨ Hello from Railway LINE API ✨"
 
-@app.route("/callback", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
     body = request.get_json()
     print("📩 ได้รับข้อความ:", body)
