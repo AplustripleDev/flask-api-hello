@@ -26,20 +26,24 @@ def webhook():
 
     if 'events' in body and body['events']:
         event = body['events'][0]
-        reply_token = event['replyToken']
-        user_msg = event['message']['text']
+        reply_token = event.get('replyToken')
 
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
-        }
-        data = {
-            "replyToken": reply_token,
-            "messages": [{
-                "type": "text",
-                "text": f"เจ้านายพิมพ์ว่า: {user_msg}"
-            }]
-        }
-        requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
+        # 🔐 ป้องกันกรณีไม่มี message หรือไม่ใช่ text
+        if 'message' in event and event['message'].get('type') == 'text':
+            user_msg = event['message']['text']
+
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
+            }
+            data = {
+                "replyToken": reply_token,
+                "messages": [{
+                    "type": "text",
+                    "text": f"เจ้านายพิมพ์ว่า: {user_msg}"
+                }]
+            }
+            # 💌 ตอบกลับข้อความ
+            requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
 
     return "OK", 200
