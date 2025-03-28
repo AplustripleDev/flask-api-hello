@@ -1,13 +1,7 @@
 import os
 import requests
 import re
-from .sheet_handler import find_tire_stock
-# ถ้าใช้ GPT ให้ import ด้วย
-# from .ai_handler import ask_gpt
-
-# ถ้าใช้ .env local:
-# from dotenv import load_dotenv
-# load_dotenv()
+from .sheet_handler import find_tire_stock  # เรียกฟังก์ชันจาก sheet_handler.py
 
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 
@@ -15,30 +9,25 @@ def handle_message(event):
     reply_token = event['replyToken']
     user_text = event['message']['text'].strip()
 
-    # ถ้าใช้ GPT:
-    # if user_text.lower().startswith("ถามai:"):
-    #     prompt = user_text[7:].strip()
-    #     reply_text = ask_gpt(prompt)
-    #     send_reply(reply_token, reply_text)
-    #     return
-
-    # ตรวจว่ารหัสยางไหม
+    # 🟡 ตรวจว่ารหัสยางไหม
     if is_tire_code(user_text):
         results = find_tire_stock(user_text)
         if results:
             bubbles = []
             for r in results:
-                # เตรียมข้อความฝั่งซ้าย
+                # จัด layout แบบแนวนอน (ซ้ายข้อความ / ขวารูป)
                 text_contents = [
                     {
                         "type": "text",
+                        # ตัวอย่าง: DUNLOP - AT5
                         "text": f"{r['brand']} - {r['model']}",
                         "weight": "bold",
                         "size": "md"
                     },
                     {
                         "type": "text",
-                        "text": f"รหัสสินค้า: {r['code']}",
+                        # เบอร์ยางจากคอลัมน์ A
+                        "text": f"เบอร์ยาง: {r['tire_code_a']}",
                         "size": "sm"
                     },
                     {
@@ -65,7 +54,7 @@ def handle_message(event):
                     }
                 ]
 
-                # จัด layout แนวนอน (ซ้าย = text_contents, ขวา = รูปเล็ก)
+                # สร้าง body contents
                 body_contents = [
                     {
                         "type": "box",
@@ -76,7 +65,7 @@ def handle_message(event):
                     }
                 ]
 
-                # ถ้ามีรูป
+                # ถ้ามีลิงค์รูปภาพ
                 if r['img_url']:
                     body_contents.append({
                         "type": "image",
@@ -86,19 +75,21 @@ def handle_message(event):
                         "align": "end",
                         "action": {
                             "type": "uri",
-                            "uri": r['img_url']  # กดแล้วเปิดรูปใหญ่
+                            "uri": r['img_url']
                         }
                     })
 
                 bubble = {
                     "type": "bubble",
+                    # ✅ หัวตารางสีเหลือง
                     "header": {
                         "type": "box",
                         "layout": "vertical",
-                        "backgroundColor": "#FFD700",  # เหลืองเข้ม
+                        "backgroundColor": "#FFD700",
                         "contents": [
                             {
                                 "type": "text",
+                                # ตัวอย่าง: รหัส 185/60/15
                                 "text": f"รหัส {user_text}",
                                 "weight": "bold",
                                 "color": "#000000",
@@ -114,13 +105,13 @@ def handle_message(event):
                     }
                 }
                 bubbles.append(bubble)
-
+            # ส่ง Flex
             send_flex_reply(reply_token, bubbles)
         else:
             send_reply(reply_token, "ไม่พบข้อมูลยางที่ค้นหาในสต็อกนะคะ ลองตรวจสอบรหัสอีกครั้ง~ 😊")
         return
 
-    # ถ้าไม่ใช่รหัสยาง → ตอบข้อความทั่วไป
+    # ถ้าไม่ใช่รหัสยาง
     send_reply(reply_token, f"เจ้านายพิมพ์ว่า: {user_text}")
 
 def send_reply(reply_token, text):
@@ -158,6 +149,6 @@ def send_flex_reply(reply_token, bubbles):
     requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
 
 def is_tire_code(text):
-    # ตรวจจับรูปแบบรหัสยางคร่าว ๆ เช่น 185/60R15, 1856015, 33x12.5R15, etc.
+    # ตรวจจับรูปแบบรหัสยาง (เช่น 185/60/15, 1856015, 33x12.5R15 ฯลฯ)
     pattern = r'^(\d{3}[\/x\*\-]?\d{2,3}([\/x\*R]?\d{2})?)$'
     return re.match(pattern, text.replace(" ", "").upper()) is not None
