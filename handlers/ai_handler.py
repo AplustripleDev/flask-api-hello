@@ -1,18 +1,13 @@
+import google.generativeai as genai
 import os
-import openai
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def ask_gpt(prompt):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "คุณคือผู้ช่วยเรื่องยางรถยนต์"},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response.choices[0].message.content.strip()
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        return response.text
     except Exception as e:
-        print("Error in ask_gpt:", e)
-        return "ขออภัยค่ะ เกิดข้อผิดพลาดในการตอบคำถามของ AI"
+        print("❌ Error in ask_gpt:", e)
+        return "ขออภัยค่ะ เกิดข้อผิดพลาดในการตอบคำถามจาก AI"
