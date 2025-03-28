@@ -1,8 +1,15 @@
 from flask import Flask, request
 import os
-# ถ้าใช้ .env บนเครื่อง local:
-# from dotenv import load_dotenv
-# load_dotenv()
+import base64
+import json
+
+# ✅ แปลง base64 JSON → credentials.json
+credentials_base64 = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+if credentials_base64:
+    credentials_json = base64.b64decode(credentials_base64).decode("utf-8")
+    with open("credentials.json", "w") as f:
+        f.write(credentials_json)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 
 from handlers.message_handler import handle_message  # ดึงฟังก์ชันจาก message_handler.py
 
