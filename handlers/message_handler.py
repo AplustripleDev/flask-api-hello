@@ -5,23 +5,42 @@ from handlers.sheet_handler import find_tire_stock
 from dotenv import load_dotenv
 
 load_dotenv()
+
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 
 def handle_message(event):
     reply_token = event['replyToken']
     user_text = event['message']['text']
 
-    # ✅ ตรวจจับคำสั่งถาม AI
+    # ✅ ตอบ AI
     if user_text.lower().startswith('ถามai:'):
         prompt = user_text[7:].strip()
         reply_text = ask_gpt(prompt)
         send_reply(reply_token, reply_text)
         return
 
-    # ✅ ตรวจจับรหัสยาง เช่น 185/60R15 หรือ 2156015
+    # ✅ ค้นหายาง
     if is_tire_code(user_text):
-        bubbles = find_tire_stock(user_text)
-        if bubbles:
+        results = find_tire_stock(user_text)
+        if results:
+            bubbles = []
+            for r in results:
+                bubbles.append({
+                    "type": "bubble",
+                    "body": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "sm",
+                        "contents": [
+                            { "type": "text", "text": f"สินค้ารหัส {user_text}", "weight": "bold", "color": "#b58900", "size": "lg" },
+                            { "type": "text", "text": r['brand'] + " - " + r['model'], "weight": "bold", "size": "md" },
+                            { "type": "text", "text": f"รหัส: {r['code']}", "size": "sm" },
+                            { "type": "text", "text": f"คงเหลือ: {r['qty']} เส้น", "size": "sm" },
+                            { "type": "text", "text": f"DOT: {r['dot']}", "size": "sm" },
+                            { "type": "text", "text": f"ราคา: {r['price']} บาท", "size": "sm" },
+                        ]
+                    }
+                })
             send_flex_reply(reply_token, bubbles)
         else:
             send_reply(reply_token, "ไม่พบข้อมูลยางที่ค้นหาในสต็อกนะคะ ลองตรวจสอบรหัสอีกครั้ง~ 😊")
