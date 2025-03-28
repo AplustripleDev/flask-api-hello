@@ -48,13 +48,13 @@ def handle_message(event):
     return
 
 
+# แก้เริ่มต้นจากตรงนี้ เรื่องไม่ต้อง +300 ในส่วนราคาที่เป็น 0
 def send_bubble_stack(reply_token, user_text, results, admin_mode=False):
     """
     สร้าง Bubble เดียว แต่มีหลายรายการ (stack ต่อกันลงมา)
     admin_mode=True → ใช้ราคาทุนตามชีต
-    admin_mode=False → บวก 300
+    admin_mode=False → บวก 300 ยกเว้นถ้าราคาเป็น 0
     """
-    # สร้าง bubble
     bubble = {
         "type": "bubble",
         "header": {
@@ -82,9 +82,18 @@ def send_bubble_stack(reply_token, user_text, results, admin_mode=False):
     body_contents = []
 
     for r in results:
-        # คำนวณราคาที่จะแสดง
+        # แปลงราคาเป็นตัวเลข
         cost_price = float(r['price']) if r['price'] else 0.0
-        display_price = cost_price if admin_mode else (cost_price + 300)
+
+        if admin_mode:
+            # 🟢 โหมด Admin แสดงราคาทุนจริง
+            display_price = cost_price
+        else:
+            # 🔵 โหมดผู้ใช้ทั่วไป: ถ้าราคา > 0 → บวก 300, ถ้า 0 → ไม่บวก
+            if cost_price > 0:
+                display_price = cost_price + 300
+            else:
+                display_price = 0
 
         row_box = {
             "type": "box",
@@ -119,7 +128,7 @@ def send_bubble_stack(reply_token, user_text, results, admin_mode=False):
                         },
                         {
                             "type": "text",
-                            "text": f"ราคา: {int(display_price)} บาท",  # แปลงเป็น int ถ้าไม่ต้องการทศนิยม
+                            "text": f\"ราคา: {int(display_price)} บาท\",
                             "size": "sm"
                         }
                     ]
@@ -162,6 +171,7 @@ def send_bubble_stack(reply_token, user_text, results, admin_mode=False):
     send_flex_reply(reply_token, [bubble])
 
 
+
 def send_reply(reply_token, text):
     headers = {
         "Content-Type": "application/json",
@@ -198,6 +208,7 @@ def send_flex_reply(reply_token, bubbles):
         ]
     }
     requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
+# การแก้ไขจบที่ตรงนี้
 
 
 def is_tire_code(text):
