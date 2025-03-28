@@ -1,15 +1,22 @@
 import os
+import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 def find_tire_stock(query):
-    # เตรียม Credentials สำหรับ Google Sheets
+    # 🔐 เตรียม Credentials จาก Environment Variable แทนไฟล์ creds.json
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('creds.json', scope)
+    
+    # 1) ดึงค่า JSON ทั้งหมดจาก ENV
+    creds_json = os.getenv("GCP_CREDENTIALS_JSON")  
+    # 2) แปลงเป็น Dict
+    creds_dict = json.loads(creds_json)
+    # 3) สร้าง Credentials จาก Dict
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
 
-    # เปิด Google Sheet
-    sheet_url = os.getenv("GOOGLE_SHEET_URL")
+    # 📗 เปิด Google Sheet
+    sheet_url = os.getenv("GOOGLE_SHEET_URL")  # อย่าลืมตั้งค่าใน Railway เช่นกัน
     spreadsheet = client.open_by_url(sheet_url)
     sheet = spreadsheet.worksheet("สินค้าคงคลัง")
 
