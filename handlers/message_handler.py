@@ -88,8 +88,3 @@ def send_flex_reply(reply_token, bubbles):
 def is_tire_code(text):
     pattern = r"^(\d{3}[\/x\*\-]?\d{2,3}[\/x\*R]?\d{2})$"
     return re.match(pattern, text.replace(" ", "")) is not None
-
-def find_tire_stock(text):
-    # อ่านข้อมูลจาก Google Sheet และคืนค่ารายการสินค้า
-    # เช่น return [{ 'brand': '...', 'model': '...', 'code': '...', 'qty': '...', 'dot': '...', 'price': '...' }]
-
