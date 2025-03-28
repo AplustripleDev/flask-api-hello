@@ -1,26 +1,23 @@
 import os
+import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 def find_tire_stock(query):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-    # ถ้าใช้ไฟล์ creds.json ที่อยู่ในโฟลเดอร์เดียวกัน
-    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
-
-    # ถ้าใช้ ENV Variable (ปลอดภัยกว่า):
-    # import json
-    # creds_json = os.getenv("GCP_CREDENTIALS_JSON")
-    # creds_dict = json.loads(creds_json)
-    # creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-
+    
+    # ✅ ดึง Credentials จาก Environment Variable แทนไฟล์ creds.json
+    creds_json = os.getenv("GCP_CREDENTIALS_JSON")  # คีย์เดียวกับที่มีใน Railway
+    creds_dict = json.loads(creds_json)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    
     client = gspread.authorize(creds)
 
-    sheet_url = os.getenv("GOOGLE_SHEET_URL")  # ลิงก์เต็มของ Google Sheets
+    sheet_url = os.getenv("GOOGLE_SHEET_URL")
     spreadsheet = client.open_by_url(sheet_url)
     sheet = spreadsheet.worksheet("สินค้าคงคลัง")
 
-    # Normalize query ก่อนเปรียบเทียบ
+    # แปลง query ให้เป็นรูปแบบเปรียบเทียบได้
     query = normalize_tire_code(query)
     data = sheet.get_all_records()
 
@@ -36,13 +33,11 @@ def find_tire_stock(query):
                 'qty': row.get("จำนวน (เส้น) คงเหลือ", ""),
                 'dot': row.get("ปีที่ผลิต (DOT)", ""),
                 'price': row.get("ราคา", "0"),
-                # 🔴 อ่านคอลัมน์ลิงก์ภาพ (ถ้ามี)
                 'img_url': row.get("ลิงก์ภาพ", "")
             })
     return results
 
 def normalize_tire_code(text):
-    # ตัด / R x * . - และช่องว่าง ออก เพื่อเปรียบเทียบง่าย
     return (
         text.upper()
         .replace("/", "")
