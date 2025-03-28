@@ -128,7 +128,7 @@ def send_bubble_stack(reply_token, user_text, results, admin_mode=False):
                         },
                         {
                             "type": "text",
-                            "text": f\"ราคา: {int(display_price)} บาท\",
+                            "text": f"ราคา: {int(display_price)} บาท",
                             "size": "sm"
                         }
                     ]
