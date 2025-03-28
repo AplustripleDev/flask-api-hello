@@ -12,13 +12,13 @@ def handle_message(event):
     reply_token = event['replyToken']
     user_text = event['message']['text'].strip()
 
-    # 1) ถาม AI → ถ้าขึ้นต้นด้วย "ai"
-    if user_text.lower().startswith("ai"):
-        prompt = user_text[2:].strip()  # ตัด "ai" ออก
-        if prompt:  # ถ้ามีคำถามจริง
+    # 1) ถาม AI → ถ้าขึ้นต้นด้วย "ai", "ai:", "ai/", "ai-" อะไรก็ได้
+    if re.match(r"^ai[\s:/\-]*", user_text.lower()):
+        prompt = re.sub(r"^ai[\s:/\-]*", "", user_text, flags=re.IGNORECASE).strip()
+        if prompt:
             reply_text = ask_gpt(prompt)
             send_reply(reply_token, reply_text)
-        return  # ไม่ทำอย่างอื่นต่อ
+        return
 
     # 2) ถ้าเริ่มต้นด้วย "am" → โหมด admin (ราคาทุน)
     if user_text.lower().startswith("am"):
@@ -171,7 +171,6 @@ def send_bubble_stack(reply_token, user_text, results, admin_mode=False):
     send_flex_reply(reply_token, [bubble])
 
 
-
 def send_reply(reply_token, text):
     headers = {
         "Content-Type": "application/json",
@@ -208,7 +207,6 @@ def send_flex_reply(reply_token, bubbles):
         ]
     }
     requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
-# การแก้ไขจบที่ตรงนี้
 
 
 def is_tire_code(text):
