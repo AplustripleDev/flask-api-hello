@@ -1,8 +1,15 @@
-import os
 import google.generativeai as genai
+import os
+import json
 
-GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GOOGLE_API_KEY)
+# ✅ โหลด Credential จาก Environment Variable
+creds_json = os.getenv("GCP_CREDENTIALS_JSON")
+
+if creds_json:
+    credentials = json.loads(creds_json)
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"), credentials=credentials)
+else:
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 def ask_gpt(prompt):
     try:
