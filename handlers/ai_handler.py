@@ -1,5 +1,5 @@
-import openai
 import os
+import openai
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -11,4 +11,4 @@ def ask_gpt(prompt):
             {"role": "user", "content": prompt}
         ]
     )
-    return response['choices'][0]['message']['content']
+    return response.choices[0].message.content.strip()
