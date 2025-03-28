@@ -2,135 +2,165 @@ import os
 import requests
 import re
 from .sheet_handler import find_tire_stock
+from .ai_handler import ask_gpt  # ถ้าใช้ GPT
+from dotenv import load_dotenv
 
+load_dotenv()
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 
 def handle_message(event):
     reply_token = event['replyToken']
     user_text = event['message']['text'].strip()
 
-    # ตรวจว่ารหัสยางไหม
+    # 1) ถาม AI → ถ้าขึ้นต้นด้วย "ai"
+    if user_text.lower().startswith("ai"):
+        prompt = user_text[2:].strip()  # ตัด "ai" ออก
+        if prompt:  # ถ้ามีคำถามจริง
+            reply_text = ask_gpt(prompt)
+            send_reply(reply_token, reply_text)
+        return  # ไม่ทำอย่างอื่นต่อ
+
+    # 2) ถ้าเริ่มต้นด้วย "am" → โหมด admin (ราคาทุน)
+    if user_text.lower().startswith("am"):
+        tire_text = user_text[2:].strip()  # ตัด "am" ออก
+        # เช็กว่า tire_text เป็นรหัสยางหรือไม่
+        if is_tire_code(tire_text):
+            results = find_tire_stock(tire_text)
+            if results:
+                # ✅ แสดงราคาทุนตามจริง
+                send_bubble_stack(reply_token, tire_text, results, admin_mode=True)
+            else:
+                send_reply(reply_token, "ไม่พบข้อมูลยางที่ค้นหาในสต็อกนะคะ ลองตรวจสอบรหัสอีกครั้ง~ 😊")
+        # ถ้าไม่ใช่รหัสยาง → เงียบ (ไม่ตอบ)
+        return
+
+    # 3) โหมดผู้ใช้ทั่วไป → ถ้าเป็นรหัสยาง (ไม่ขึ้นต้นด้วย am)
     if is_tire_code(user_text):
         results = find_tire_stock(user_text)
         if results:
-            # 🔴 สร้าง Bubble เดียว
-            bubble = {
-                "type": "bubble",
-                "header": {
-                    "type": "box",
-                    "layout": "vertical",
-                    "backgroundColor": "#FFD700",  # เหลืองสด
-                    "contents": [
-                        {
-                            "type": "text",
-                            "text": f"รหัส {user_text}",
-                            "weight": "bold",
-                            "color": "#000000",
-                            "size": "lg"
-                        }
-                    ]
-                },
-                "body": {
-                    "type": "box",
-                    "layout": "vertical",
-                    "spacing": "md",
-                    "contents": []
-                }
-            }
-
-            # สร้าง list เก็บเนื้อหาใน body
-            body_contents = []
-
-            # 🟡 วนลูปแต่ละรายการ results
-            for r in results:
-                # สร้างกล่องแนวนอน (ซ้าย=ข้อความ, ขว=รูป)
-                row_box = {
-                    "type": "box",
-                    "layout": "horizontal",
-                    "spacing": "sm",
-                    "contents": [
-                        {
-                            "type": "box",
-                            "layout": "vertical",
-                            "flex": 3,
-                            "contents": [
-                                {
-                                    "type": "text",
-                                    "text": f"{r['brand']} - {r['model']}",
-                                    "weight": "bold",
-                                    "size": "sm"
-                                },
-                                {
-                                    "type": "text",
-                                    "text": f"เบอร์ยาง: {r['tire_code_a']}",
-                                    "size": "sm"
-                                },
-                                {
-                                    "type": "text",
-                                    "text": f"คงเหลือ: {r['qty']} เส้น",
-                                    "size": "sm"
-                                },
-                                {
-                                    "type": "text",
-                                    "text": f"DOT: {r['dot']}",
-                                    "size": "sm"
-                                },
-                                {
-                                    "type": "text",
-                                    "text": f"ราคา: {r['price']} บาท",
-                                    "size": "sm"
-                                }
-                            ]
-                        }
-                    ]
-                }
-
-                # ถ้ามีรูป → ใส่รูปทางขวา
-                if r.get('img_url'):
-                    row_box["contents"].append({
-                        "type": "image",
-                        "url": r['img_url'],
-                        "size": "sm",         # ปรับขนาดรูปตามต้องการ
-                        "aspectMode": "cover",
-                        "action": {
-                            "type": "uri",
-                            "uri": r['img_url']  # กดเพื่อเปิดภาพใหญ่
-                        }
-                    })
-
-                # เพิ่ม row_box เข้าใน body_contents
-                body_contents.append(row_box)
-
-            # 🟡 เพิ่ม Text “Python by KenDev.” (มุมขวาล่าง) เป็นอีก 1 บล็อก
-            body_contents.append({
-                "type": "box",
-                "layout": "horizontal",
-                "contents": [
-                    {
-                        "type": "filler"  # ดันให้ข้อความไปชิดขวา
-                    },
-                    {
-                        "type": "text",
-                        "text": "Python by KenDev.",
-                        "size": "xs",
-                        "color": "#888888",
-                        "align": "end"
-                    }
-                ]
-            })
-
-            # ใส่ body_contents กลับไปใน bubble
-            bubble["body"]["contents"] = body_contents
-
-            # ส่ง bubble เดียวใน carousel
-            send_flex_reply(reply_token, [bubble])
-
+            # ✅ แสดงราคา + 300
+            send_bubble_stack(reply_token, user_text, results, admin_mode=False)
         else:
             send_reply(reply_token, "ไม่พบข้อมูลยางที่ค้นหาในสต็อกนะคะ ลองตรวจสอบรหัสอีกครั้ง~ 😊")
         return
 
-    # ถ้าไม่ใช่รหัสยาง
-    send_reply(reply_token, f"เจ้านายพิมพ์ว่า: {user_text}")
+    # 4) ถ้าไม่เข้ากรณีไหนเลย → ไม่ตอบ (เงียบ)
+    return
+
+
+def send_bubble_stack(reply_token, user_text, results, admin_mode=False):
+    """
+    สร้าง Bubble เดียว แต่มีหลายรายการ (stack ต่อกันลงมา)
+    admin_mode=True → ใช้ราคาทุนตามชีต
+    admin_mode=False → บวก 300
+    """
+    # สร้าง bubble
+    bubble = {
+        "type": "bubble",
+        "header": {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#FFD700",
+            "contents": [
+                {
+                    "type": "text",
+                    "text": f"รหัส {user_text}",
+                    "weight": "bold",
+                    "color": "#000000",
+                    "size": "lg"
+                }
+            ]
+        },
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "md",
+            "contents": []
+        }
+    }
+
+    body_contents = []
+
+    for r in results:
+        # คำนวณราคาที่จะแสดง
+        cost_price = float(r['price']) if r['price'] else 0.0
+        display_price = cost_price if admin_mode else (cost_price + 300)
+
+        row_box = {
+            "type": "box",
+            "layout": "horizontal",
+            "spacing": "sm",
+            "contents": [
+                {
+                    "type": "box",
+                    "layout": "vertical",
+                    "flex": 3,
+                    "contents": [
+                        {
+                            "type": "text",
+                            "text": f"{r['brand']} - {r['model']}",
+                            "weight": "bold",
+                            "size": "sm"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"เบอร์ยาง: {r['tire_code_a']}",
+                            "size": "sm"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"คงเหลือ: {r['qty']} เส้น",
+                            "size": "sm"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"DOT: {r['dot']}",
+                            "size": "sm"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"ราคา: {int(display_price)} บาท",  # แปลงเป็น int ถ้าไม่ต้องการทศนิยม
+                            "size": "sm"
+                        }
+                    ]
+                }
+            ]
+        }
+
+        # ถ้ามีรูป
+        if r.get('img_url'):
+            row_box["contents"].append({
+                "type": "image",
+                "url": r['img_url'],
+                "size": "sm",
+                "aspectMode": "cover",
+                "action": {
+                    "type": "uri",
+                    "uri": r['img_url']
+                }
+            })
+
+        body_contents.append(row_box)
+
+    # เพิ่ม "Python by KenDev." มุมขวาล่าง
+    body_contents.append({
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+            {"type": "filler"},
+            {
+                "type": "text",
+                "text": "Python by KenDev.",
+                "size": "xs",
+                "color": "#888888",
+                "align": "end"
+            }
+        ]
+    })
+
+    bubble["body"]["contents"] = body_contents
+    send_flex_reply(reply_token, [bubble])
+
 
 def send_reply(reply_token, text):
     headers = {
@@ -139,12 +169,15 @@ def send_reply(reply_token, text):
     }
     data = {
         "replyToken": reply_token,
-        "messages": [{
-            "type": "text",
-            "text": text
-        }]
+        "messages": [
+            {
+                "type": "text",
+                "text": text
+            }
+        ]
     }
     requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
+
 
 def send_flex_reply(reply_token, bubbles):
     headers = {
@@ -166,6 +199,8 @@ def send_flex_reply(reply_token, bubbles):
     }
     requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
 
+
 def is_tire_code(text):
+    # ตรวจจับรูปแบบรหัสยาง
     pattern = r'^(\d{3}[\/x\*\-]?\d{2,3}([\/x\*R]?\d{2})?)$'
     return re.match(pattern, text.replace(" ", "").upper()) is not None
