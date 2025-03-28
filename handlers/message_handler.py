@@ -3,7 +3,7 @@ import requests
 import re
 from .sheet_handler import find_tire_stock
 from .ai_handler import ask_gpt  # ถ้าใช้ GPT
-from dotenv import load_dotenv
+from .ai_gemini import ask_gpt
 
 load_dotenv()
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
