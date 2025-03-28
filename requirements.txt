@@ -3,5 +3,4 @@ requests
 python-dotenv
 gspread
 oauth2client
-openai==0.28.0
 google-generativeai
