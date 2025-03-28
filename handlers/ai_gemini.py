@@ -1,21 +1,39 @@
-import google.generativeai as genai
 import os
 import json
+from google.oauth2 import service_account
+from google.auth.transport.requests import Request
+import requests
 
-# ✅ โหลด Credential จาก Environment Variable
-creds_json = os.getenv("GCP_CREDENTIALS_JSON")
-
-if creds_json:
-    credentials = json.loads(creds_json)
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"), credentials=credentials)
-else:
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+credentials_info = json.loads(os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON"))
 
 def ask_gpt(prompt):
     try:
-        model = genai.GenerativeModel("gemini-pro")
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        credentials = service_account.Credentials.from_service_account_info(
+            credentials_info,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        credentials.refresh(Request())
+        access_token = credentials.token
+
+        response = requests.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }]
+            }
+        )
+
+        if response.status_code == 200:
+            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            print("Gemini Error:", response.text)
+            return "ขออภัยค่ะ เกิดข้อผิดพลาดในการขอข้อมูลจาก AI 🥺"
+
     except Exception as e:
         print("Error in ask_gpt:", e)
-        return "ขออภัยค่ะ เกิดข้อผิดพลาดในการตอบคำถามของ AI"
+        return "ขออภัยค่ะ เกิดข้อผิดพลาดในการเชื่อมต่อ AI 😢"
