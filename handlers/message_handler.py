@@ -1,5 +1,6 @@
 import os
 import requests
+import re
 from handlers.ai_handler import ask_gpt
 from handlers.sheet_handler import find_tire_stock
 from dotenv import load_dotenv
@@ -32,12 +33,12 @@ def handle_message(event):
                         "layout": "vertical",
                         "spacing": "sm",
                         "contents": [
-                            { "type": "text", "text": f"สินค้ารหัส {user_text}", "weight": "bold", "color": "#b58900", "size": "lg" },
-                            { "type": "text", "text": r['brand'] + " - " + r['model'], "weight": "bold", "size": "md" },
-                            { "type": "text", "text": f"รหัส: {r['code']}", "size": "sm" },
+                            { "type": "text", "text": f"รหัส {user_text}", "weight": "bold", "color": "#b58900", "size": "lg" },
+                            { "type": "text", "text": f"{r['brand']} - {r['model']}", "weight": "bold", "size": "md" },
+                            { "type": "text", "text": f"รหัสสินค้า: {r['code']}", "size": "sm" },
                             { "type": "text", "text": f"คงเหลือ: {r['qty']} เส้น", "size": "sm" },
                             { "type": "text", "text": f"DOT: {r['dot']}", "size": "sm" },
-                            { "type": "text", "text": f"ราคา: {r['price']} บาท", "size": "sm" },
+                            { "type": "text", "text": f"ราคา: {r['price']} บาท", "size": "sm" }
                         ]
                     }
                 })
@@ -85,6 +86,5 @@ def send_flex_reply(reply_token, bubbles):
     requests.post("https://api.line.me/v2/bot/message/reply", headers=headers, json=data)
 
 def is_tire_code(text):
-    import re
-    pattern = r'^(\d{3}[\/x\*\-]?\d{2,3}[\/x\*R]?\d{2})$'
+    pattern = r"^(\d{3}[\/x\*\-]?\d{2,3}[\/x\*R]?\d{2})$"
     return re.match(pattern, text.replace(" ", "")) is not None
