@@ -1,36 +1,52 @@
-from flask import Flask, request
+from flask import Flask, request, abort
 import os
+import base64
+import json
+from handlers.message_handler import handle_message
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage
 
-# ✅ ดึง JSON โดยตรงจาก Environment (ไม่ต้อง decode Base64)
-credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-if credentials_json:
+app = Flask(__name__)
+
+# Decode GOOGLE_APPLICATION_CREDENTIALS_JSON (if exists)
+def add_padding(base64_str):
+    padding_needed = 4 - (len(base64_str) % 4)
+    if padding_needed and padding_needed != 4:
+        base64_str += "=" * padding_needed
+    return base64_str
+
+credentials_base64 = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+if credentials_base64:
+    credentials_base64 = add_padding(credentials_base64)
+    credentials_json = base64.b64decode(credentials_base64).decode("utf-8")
     with open("credentials.json", "w") as f:
         f.write(credentials_json)
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 
-from handlers.message_handler import handle_message  # ดึงฟังก์ชันจาก message_handler.py
+# LINE Config
+line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
-app = Flask(__name__)
+@app.route("/callback", methods=['POST'])
+def callback():
+    signature = request.headers['X-Line-Signature']
+    body = request.get_data(as_text=True)
 
-@app.route('/')
-def home():
-    return "Hello from Railway LINE Bot", 200
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
 
-@app.route('/webhook', methods=['POST', 'GET'])
-def webhook():
-    if request.method == 'GET':
-        return "Webhook is active.", 200
+    return 'OK'
 
-    body = request.get_json()
-    print("📩 ได้รับข้อความ:", body)
+@handler.add(MessageEvent, message=TextMessage)
+def handle_text_message(event):
+    handle_message(event, line_bot_api)
 
-    if body and "events" in body:
-        for event in body["events"]:
-            if event.get("type") == "message":
-                handle_message(event)
+@app.route("/health")
+def health():
+    return "ok"
 
-    return "OK", 200
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    app.run(debug=True)
