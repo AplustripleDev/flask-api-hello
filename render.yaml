@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: flask-api-hello
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: LINE_CHANNEL_SECRET
+        value: "4456357c2e14d36894e743d5aa12d7d9"
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        value: "r2qEzLOFUhLivhqA9YZp7zQ2wHB1PE1BPX4/fZfZ5KvsxMw0l+rv8Fc7vEAWYcRJBSL/GKSHZubytWRw1+uxIDxnv36/VIDNYGW43u/b3+x82suKE/k5iBzFKjRABTSYpn9Gjm7Yr0TaVAfoP/NTlAdB04t89/1O/w1cDnyilFU="
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        value: "{JSON base64 escaped string}"
+      - key: GEMINI_API_KEY
+        value: ""
+      - key: GOOGLE_SHEET_URL
+        value: "https://docs.google.com/spreadsheets/d/1C1nyKOTKqHoZ-2AnNMTPJ87b3lOGpDR1NxQ8DcH5k5g/edit?gid=393697545#gid=393697545"
+      - key: OPENAI_API_KEY
+        value: "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"
